@@ -43,18 +43,6 @@ docker run -e AZP_URL="<Azure DevOps instance>" \
            azp-agent:linux
 ```
 
-### Exemplo com suas configurações
-```bash
-docker run -e AZP_URL="https://dev.azure.com/rafaelrosenberg-dev/" \
-           -e AZP_TOKEN="EbryJdquvJbhFJuAmc1iqwmZiyPZFuAkg0vMNEokGmtWlcHvj4McJQQJ99BGACAAAAAAAAAAAAASAZDO2Al0" \
-           -e AZP_POOL="rosenberg" \
-           -e AZP_AGENT_NAME="Docker Agent - Linux" \
-           --name "azp-agent-linux" \
-           --privileged \
-           -v /var/run/docker.sock:/var/run/docker.sock \
-           azp-agent:linux
-```
-
 ## Notas importantes
 
 1. **Flag --privileged**: Necessária para que o Docker funcione dentro do container
