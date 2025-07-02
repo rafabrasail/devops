@@ -1,29 +1,9 @@
 #!/bin/bash
 set -e
 
-# Configurar Docker para funcionar no container
-echo "🐳 Configurando Docker..."
-if [ -S /var/run/docker.sock ]; then
-    echo "✅ Socket do Docker encontrado"
-    # Garantir que o usuário atual tenha acesso ao socket do Docker
-    sudo chmod 666 /var/run/docker.sock 2>/dev/null || true
-    # Adicionar usuário ao grupo docker se necessário
-    sudo usermod -aG docker $(whoami) 2>/dev/null || true
-else
-    echo "⚠️ Socket do Docker não encontrado"
-fi
-
-# Verificar se o Docker está funcionando
-echo "🔍 Verificando Docker..."
-if docker --version >/dev/null 2>&1; then
-    echo "✅ Docker CLI encontrado"
-    if docker info >/dev/null 2>&1; then
-        echo "✅ Docker daemon funcionando"
-    else
-        echo "⚠️ Docker daemon não está funcionando"
-    fi
-else
-    echo "❌ Docker CLI não encontrado"
+if [ -z "${AZP_URL}" ]; then
+  echo 1>&2 "error: missing AZP_URL environment variable"
+  exit 1
 fi
 
 if [ -n "$AZP_CLIENTID" ]; then
@@ -32,12 +12,6 @@ if [ -n "$AZP_CLIENTID" ]; then
   # adapted from https://learn.microsoft.com/en-us/azure/databricks/dev-tools/user-aad-token
   AZP_TOKEN=$(az account get-access-token --query accessToken --output tsv)
   echo "Token retrieved"
-fi
-
-# Validar variáveis de ambiente obrigatórias
-if [ -z "${AZP_URL}" ]; then
-  echo 1>&2 "error: missing AZP_URL environment variable"
-  exit 1
 fi
 
 if [ -z "${AZP_TOKEN_FILE}" ]; then

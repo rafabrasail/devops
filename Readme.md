@@ -1,37 +1,47 @@
-# Azure DevOps Agent Docker Images
+# Azure DevOps Self-Hosted Agent for Django Projects
 
-Este repositório contém Dockerfiles para criar agentes do Azure DevOps que podem executar builds Docker.
+This repository contains Dockerfiles and scripts to create **Azure DevOps agents** that can execute Docker builds in a Linux environment. These agents are Docker containers that connect to Azure DevOps to run CI/CD pipelines, specifically designed for Django project builds.
 
-## Configurações do Docker
+## What is an Azure DevOps Agent?
 
-### Linux Agent (`azp-agent-linux.dockerfile`)
+An Azure DevOps Agent is a service that executes a pipeline job. It can be:
+- **Self-hosted**: Run on your own infrastructure (like this project)
+- **Microsoft-hosted**: Managed by Microsoft
 
-O agente Linux inclui as seguintes configurações do Docker:
+This project creates a **self-hosted** agent using Docker, allowing you to have full control over the build environment and execute Docker builds within containers, perfect for Django application development and deployment.
 
-1. **Instalação do Docker**: Instala o `docker.io` via apt
-2. **Configuração do usuário**: Adiciona o usuário `agent` ao grupo `docker`
-3. **Configuração do daemon**: Cria arquivo de configuração `/etc/docker/daemon.json` com:
-   - Storage driver: overlay2
-   - Log driver: json-file com rotação de logs
-4. **Permissões do socket**: Configura permissões adequadas para `/var/run/docker.sock`
-5. **Configuração do sudo**: Permite que o usuário `agent` execute comandos Docker sem senha
-6. **Inicialização automática**: O script `start.sh` inicia o daemon Docker automaticamente
+## Why use Docker for the Agent?
 
-### Variáveis de Ambiente Necessárias
+- **Isolation**: Each agent runs in its own container
+- **Portability**: Works on any system that supports Docker
+- **Consistency**: Same environment in development and production
+- **Scalability**: Easy to create multiple agents
+- **Docker-in-Docker**: Allows executing Docker builds within the agent itself
+- **Django-specific**: Optimized for Python and Django project requirements
 
-- `AZP_URL`: URL da sua instância do Azure DevOps
-- `AZP_TOKEN`: Personal Access Token (PAT) com permissões adequadas
-- `AZP_POOL`: Nome do pool de agentes
-- `AZP_AGENT_NAME`: Nome do agente (opcional, usa hostname por padrão)
+## Docker Configuration
 
-## Como usar
+### Required Environment Variables
 
-### Build da imagem Linux
+- `AZP_URL`: URL of your Azure DevOps instance
+- `AZP_TOKEN`: Personal Access Token (PAT) with appropriate permissions
+- `AZP_POOL`: Name of the agent pool
+- `AZP_AGENT_NAME`: Agent name (optional, uses hostname by default)
+
+## How to use
+
+### Prerequisites
+
+- Docker installed on Linux system
+- Access to Azure DevOps with permissions to create agents
+- Personal Access Token (PAT) with appropriate permissions
+
+### Build the Linux image
 ```bash
 docker build --tag "azp-agent:linux" --file "./azp-agent-linux.dockerfile" .
 ```
 
-### Executar o agente Linux
+### Run the Linux agent
 ```bash
 docker run -e AZP_URL="<Azure DevOps instance>" \
            -e AZP_TOKEN="<Personal Access Token>" \
@@ -43,61 +53,41 @@ docker run -e AZP_URL="<Azure DevOps instance>" \
            azp-agent:linux
 ```
 
-## Notas importantes
+## Azure DevOps Configuration
 
-1. **Flag --privileged**: Necessária para que o Docker funcione dentro do container
-2. **Volume mount**: Monta o socket do Docker do host para permitir comunicação
-3. **Inicialização automática**: O daemon Docker é iniciado automaticamente quando o container inicia
-4. **Permissões**: O usuário `agent` tem permissões adequadas para executar comandos Docker
+1. **Create an Agent Pool**:
+   - Go to Project Settings > Agent pools
+   - Click "Add pool" > "Self-hosted"
+   - Give the pool a name (e.g., "Docker Agents")
 
-## Solução de Problemas
+2. **Configure Permissions**:
+   - The PAT must have permissions for "Agent Pools (Read & manage)"
 
-### Erro: "failed to start daemon, ensure docker is not running or delete /var/run/docker.pid"
+3. **Run the Container**:
+   - Use the docker run command above
+   - The agent will automatically register in the pool
 
-Este erro indica que há um conflito com o Docker daemon. Execute o script de limpeza:
+## Important Notes
 
-```bash
-./cleanup.sh
-```
+1. **--privileged flag**: Required for Docker to work inside the container
+2. **Volume mount**: Mounts the Docker socket from the host to allow communication
+3. **Automatic initialization**: The Docker daemon is automatically started when the container starts
+4. **Permissions**: The `agent` user has appropriate permissions to execute Docker commands
 
-### Erro: "missing AZP_URL environment variable"
+### Manual Docker cleanup
 
-Verifique se todas as variáveis de ambiente estão sendo passadas corretamente:
-
-```bash
-docker run -e AZP_URL="https://dev.azure.com/rafaelrosenberg-dev/" \
-           -e AZP_TOKEN="SEU_TOKEN_AQUI" \
-           -e AZP_POOL="rosenberg" \
-           -e AZP_AGENT_NAME="Docker Agent - Linux" \
-           --name "azp-agent-linux" \
-           --privileged \
-           -v /var/run/docker.sock:/var/run/docker.sock \
-           azp-agent:linux
-```
-
-### Limpeza Manual
-
-Se o script de limpeza não resolver, execute manualmente:
+If the cleanup script doesn't resolve issues, execute manually:
 
 ```bash
-# Parar e remover containers
+# Stop and remove containers
 docker stop azp-agent-linux
 docker rm azp-agent-linux
 
-# Limpeza completa
+# Complete cleanup
 docker system prune -af
 ```
 
-## Recursos incluídos
+## Agent Download
 
-- Docker Engine
-- Azure CLI
-- Python 3 e pip
-- Git
-- Sudo configurado
-- Agente do Azure DevOps v4.258.1
-
-## Download do agente
-
-O agente é baixado automaticamente durante a execução, mas você pode baixá-lo manualmente:
+The agent is automatically downloaded during execution, but you can download it manually:
 https://download.agent.dev.azure.com/agent/4.258.1/vsts-agent-linux-x64-4.258.1.tar.gz
