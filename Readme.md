@@ -1,21 +1,24 @@
 # Azure DevOps Agent Docker Images
 
-Este repositório contém Dockerfiles para criar agentes do Azure DevOps que podem executar builds Docker.
+Este repositório contém Dockerfiles e scripts para criar **agentes do Azure DevOps** que podem executar builds Docker em ambiente Linux. Esses agentes são containers Docker que se conectam ao Azure DevOps para executar pipelines de CI/CD.
+
+## O que é um Azure DevOps Agent?
+
+Um Azure DevOps Agent é um serviço que executa um job de pipeline. Ele pode ser:
+- **Self-hosted**: Executado em sua própria infraestrutura (como este projeto)
+- **Microsoft-hosted**: Gerenciado pela Microsoft
+
+Este projeto cria um agente **self-hosted** usando Docker, permitindo que você tenha controle total sobre o ambiente de build e execute builds Docker dentro de containers.
+
+## Por que usar Docker para o Agent?
+
+- **Isolamento**: Cada agente roda em seu próprio container
+- **Portabilidade**: Funciona em qualquer sistema que suporte Docker
+- **Consistência**: Mesmo ambiente em desenvolvimento e produção
+- **Escalabilidade**: Fácil de criar múltiplos agentes
+- **Docker-in-Docker**: Permite executar builds Docker dentro do próprio agente
 
 ## Configurações do Docker
-
-### Linux Agent (`azp-agent-linux.dockerfile`)
-
-O agente Linux inclui as seguintes configurações do Docker:
-
-1. **Instalação do Docker**: Instala o `docker.io` via apt
-2. **Configuração do usuário**: Adiciona o usuário `agent` ao grupo `docker`
-3. **Configuração do daemon**: Cria arquivo de configuração `/etc/docker/daemon.json` com:
-   - Storage driver: overlay2
-   - Log driver: json-file com rotação de logs
-4. **Permissões do socket**: Configura permissões adequadas para `/var/run/docker.sock`
-5. **Configuração do sudo**: Permite que o usuário `agent` execute comandos Docker sem senha
-6. **Inicialização automática**: O script `start.sh` inicia o daemon Docker automaticamente
 
 ### Variáveis de Ambiente Necessárias
 
@@ -25,6 +28,12 @@ O agente Linux inclui as seguintes configurações do Docker:
 - `AZP_AGENT_NAME`: Nome do agente (opcional, usa hostname por padrão)
 
 ## Como usar
+
+### Pré-requisitos
+
+- Docker instalado no sistema Linux
+- Acesso ao Azure DevOps com permissões para criar agentes
+- Personal Access Token (PAT) com permissões adequadas
 
 ### Build da imagem Linux
 ```bash
@@ -43,17 +52,19 @@ docker run -e AZP_URL="<Azure DevOps instance>" \
            azp-agent:linux
 ```
 
-### Exemplo com suas configurações
-```bash
-docker run -e AZP_URL="https://dev.azure.com/rafaelrosenberg-dev/" \
-           -e AZP_TOKEN="EbryJdquvJbhFJuAmc1iqwmZiyPZFuAkg0vMNEokGmtWlcHvj4McJQQJ99BGACAAAAAAAAAAAAASAZDO2Al0" \
-           -e AZP_POOL="rosenberg" \
-           -e AZP_AGENT_NAME="Docker Agent - Linux" \
-           --name "azp-agent-linux" \
-           --privileged \
-           -v /var/run/docker.sock:/var/run/docker.sock \
-           azp-agent:linux
-```
+## Configuração no Azure DevOps
+
+1. **Criar um Pool de Agentes**:
+   - Vá para Project Settings > Agent pools
+   - Clique em "Add pool" > "Self-hosted"
+   - Dê um nome ao pool (ex: "Docker Agents")
+
+2. **Configurar Permissões**:
+   - O PAT deve ter permissões para "Agent Pools (Read & manage)"
+
+3. **Executar o Container**:
+   - Use o comando docker run acima
+   - O agente se registrará automaticamente no pool
 
 ## Notas importantes
 
@@ -62,32 +73,7 @@ docker run -e AZP_URL="https://dev.azure.com/rafaelrosenberg-dev/" \
 3. **Inicialização automática**: O daemon Docker é iniciado automaticamente quando o container inicia
 4. **Permissões**: O usuário `agent` tem permissões adequadas para executar comandos Docker
 
-## Solução de Problemas
-
-### Erro: "failed to start daemon, ensure docker is not running or delete /var/run/docker.pid"
-
-Este erro indica que há um conflito com o Docker daemon. Execute o script de limpeza:
-
-```bash
-./cleanup.sh
-```
-
-### Erro: "missing AZP_URL environment variable"
-
-Verifique se todas as variáveis de ambiente estão sendo passadas corretamente:
-
-```bash
-docker run -e AZP_URL="https://dev.azure.com/rafaelrosenberg-dev/" \
-           -e AZP_TOKEN="SEU_TOKEN_AQUI" \
-           -e AZP_POOL="rosenberg" \
-           -e AZP_AGENT_NAME="Docker Agent - Linux" \
-           --name "azp-agent-linux" \
-           --privileged \
-           -v /var/run/docker.sock:/var/run/docker.sock \
-           azp-agent:linux
-```
-
-### Limpeza Manual
+### Limpeza Manual de docker
 
 Se o script de limpeza não resolver, execute manualmente:
 
@@ -99,15 +85,6 @@ docker rm azp-agent-linux
 # Limpeza completa
 docker system prune -af
 ```
-
-## Recursos incluídos
-
-- Docker Engine
-- Azure CLI
-- Python 3 e pip
-- Git
-- Sudo configurado
-- Agente do Azure DevOps v4.258.1
 
 ## Download do agente
 
